@@ -58,7 +58,7 @@ class RequestBodySerializer
         if (is_string($value)) {
             return [
                 'name' => $name,
-                'contents' => fopen($value, 'r'),
+                'contents' => $this->openFile($value),
                 'filename' => basename($value),
             ];
         }
@@ -74,11 +74,29 @@ class RequestBodySerializer
         if ($value instanceof SplFileInfo) {
             return [
                 'name' => $name,
-                'contents' => fopen($value->getPathname(), 'r'),
+                'contents' => $this->openFile($value->getPathname()),
                 'filename' => $value->getBasename(),
             ];
         }
 
         throw new PagotiException('The image field must be a file path, stream resource, or SplFileInfo instance.');
+    }
+
+    /**
+     * @return resource
+     */
+    private function openFile(string $path): mixed
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new PagotiException("The image file [{$path}] does not exist or is not readable.");
+        }
+
+        $resource = @fopen($path, 'r');
+
+        if ($resource === false) {
+            throw new PagotiException("The image file [{$path}] could not be opened for reading.");
+        }
+
+        return $resource;
     }
 }

@@ -2,11 +2,13 @@
 
 namespace Metrique\Pagoti\Tests\Resources;
 
+use Metrique\Pagoti\Exceptions\PagotiException;
 use Metrique\Pagoti\PaginatedResponse;
 use Metrique\Pagoti\Tests\Concerns\CreatesPagotiClient;
 use Metrique\Pagoti\Tests\TestCase;
 use Psr\Http\Client\ClientInterface;
 use Psr\SimpleCache\CacheInterface;
+use SplFileInfo;
 
 class ProjectsResourceTest extends TestCase
 {
@@ -194,6 +196,38 @@ class ProjectsResourceTest extends TestCase
         } finally {
             unlink($imagePath);
         }
+    }
+
+    public function test_create_throws_exception_for_missing_image_path(): void
+    {
+        $httpClient = $this->createMock(ClientInterface::class);
+        $httpClient->expects($this->never())->method('sendRequest');
+
+        $client = $this->makeClient(httpClient: $httpClient, cache: $this->makeCacheStub());
+
+        $this->expectException(PagotiException::class);
+        $this->expectExceptionMessage('does not exist or is not readable');
+
+        $client->projects()->create([
+            'name' => 'My Project',
+            'image' => sys_get_temp_dir() . '/missing-pagoti-project-image.jpg',
+        ]);
+    }
+
+    public function test_create_throws_exception_for_missing_spl_file_info_image(): void
+    {
+        $httpClient = $this->createMock(ClientInterface::class);
+        $httpClient->expects($this->never())->method('sendRequest');
+
+        $client = $this->makeClient(httpClient: $httpClient, cache: $this->makeCacheStub());
+
+        $this->expectException(PagotiException::class);
+        $this->expectExceptionMessage('does not exist or is not readable');
+
+        $client->projects()->create([
+            'name' => 'My Project',
+            'image' => new SplFileInfo(sys_get_temp_dir() . '/missing-pagoti-project-image.jpg'),
+        ]);
     }
 
     public function test_get_passes_page_number_in_request_parameters(): void

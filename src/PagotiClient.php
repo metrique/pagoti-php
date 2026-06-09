@@ -4,6 +4,7 @@ namespace Metrique\Pagoti;
 
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
+use JsonException;
 use Metrique\Pagoti\Exceptions\PagotiApiException;
 use Metrique\Pagoti\Exceptions\PagotiAuthException;
 use Metrique\Pagoti\Exceptions\PagotiException;
@@ -93,8 +94,14 @@ class PagotiClient implements PagotiClientInterface
             throw new PagotiException('HTTP request failed: ' . $e->getMessage(), previous: $e);
         }
 
-        $data = json_decode($response->getBody()->getContents(), true);
         $status = $response->getStatusCode();
+        $contents = $response->getBody()->getContents();
+
+        try {
+            $data = $contents === '' ? [] : json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new PagotiException('Failed to decode JSON response: ' . $e->getMessage(), previous: $e);
+        }
 
         if ($status >= 400) {
             $message = $data['message'] ?? 'Unknown error';

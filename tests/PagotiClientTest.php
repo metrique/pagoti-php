@@ -2,6 +2,8 @@
 
 namespace Metrique\Pagoti\Tests;
 
+use GuzzleHttp\Psr7\Response;
+use JsonException;
 use Metrique\Pagoti\Exceptions\PagotiApiException;
 use Metrique\Pagoti\Exceptions\PagotiAuthException;
 use Metrique\Pagoti\Exceptions\PagotiException;
@@ -148,6 +150,34 @@ class PagotiClientTest extends TestCase
             $this->assertSame(422, $e->getStatusCode());
             $this->assertSame(['name' => ['The name field is required.']], $e->getErrors());
         }
+    }
+
+    public function test_throws_pagoti_exception_on_invalid_json_response(): void
+    {
+        $httpClient = $this->createStub(ClientInterface::class);
+        $httpClient->method('sendRequest')
+            ->willReturn(new Response(200, ['Content-Type' => 'application/json'], '{invalid'));
+
+        $client = $this->makeClient(httpClient: $httpClient, cache: $this->makeCacheStub());
+
+        try {
+            $client->project('proj-1')->get();
+            $this->fail('Expected PagotiException');
+        } catch (PagotiException $e) {
+            $this->assertStringStartsWith('Failed to decode JSON response:', $e->getMessage());
+            $this->assertInstanceOf(JsonException::class, $e->getPrevious());
+        }
+    }
+
+    public function test_empty_success_response_returns_empty_array(): void
+    {
+        $httpClient = $this->createStub(ClientInterface::class);
+        $httpClient->method('sendRequest')
+            ->willReturn(new Response(204, ['Content-Type' => 'application/json'], ''));
+
+        $client = $this->makeClient(httpClient: $httpClient, cache: $this->makeCacheStub());
+
+        $this->assertSame([], $client->project('proj-1')->get());
     }
 
     public function test_throws_pagoti_exception_on_network_error(): void
