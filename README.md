@@ -101,17 +101,21 @@ $media = $client->project($projectId)->media()->get(page: 2);
 
 ### Write Operations
 
-> Coming soon — write endpoints are currently in development.
+Project and page write endpoints are supported.
 
 ```php
 // Create a project
 $project = $client->projects()->create([
-    // ...
+    'name' => 'My Project',
+    'description' => 'Project description',
 ]);
 
 // Update a project
 $project = $client->project($projectId)->update([
-    // ...
+    'name' => 'Updated Project Name',
+    'description' => 'Updated description',
+    'public_at' => '2026-03-31T10:00:00.000000Z',
+    'published_at' => '2026-03-31T10:00:00.000000Z',
 ]);
 
 // Delete a project
@@ -129,6 +133,23 @@ $page = $client->project($projectId)->page($pageId)->update([
 
 // Delete a page
 $client->project($projectId)->page($pageId)->delete();
+```
+
+### Project Images
+
+When creating or updating a project, pass `image` as a file path, stream resource, or `SplFileInfo`. The client will automatically send the request as `multipart/form-data`.
+
+```php
+$project = $client->projects()->create([
+    'name' => 'My Project',
+    'description' => 'Project description',
+    'image' => __DIR__ . '/project-image.jpg',
+]);
+
+$project = $client->project($projectId)->update([
+    'name' => 'Updated Project Name',
+    'image' => new SplFileInfo(__DIR__ . '/project-image.jpg'),
+]);
 ```
 
 ## Paginated Responses
@@ -181,6 +202,12 @@ $client->project($projectId)->media()->flush();
 // Flush the entire Pagoti cache
 $client->flush();
 ```
+
+Successful project writes automatically invalidate related cached GET responses:
+
+- `projects()->create(...)` flushes the projects list cache
+- `project($id)->update(...)` flushes the project, its pages/media caches, and the projects list cache
+- `project($id)->delete()` flushes the project, its pages/media caches, and the projects list cache
 
 ## Error Handling
 

@@ -12,7 +12,20 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^13.0",
-    "friendsofphp/php-cs-fixer": "^3.94"
+    "friendsofphp/php-cs-fixer": "^3.94",
+    "phpstan/phpstan": "^2.1"
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "vendor/bin/phpunit --coverage-text",
+    "analyse": "vendor/bin/phpstan analyse",
+    "format": "vendor/bin/php-cs-fixer fix",
+    "format-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+    "ci": [
+      "@format-check",
+      "@analyse",
+      "@test"
+    ]
   },
   "suggest": {
     "symfony/http-client": "Alternative PSR-18 HTTP client implementation"
@@ -21,6 +34,16 @@
   "autoload": {
     "psr-4": {
       "Metrique\\Pagoti\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Metrique\\Pagoti\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true
     }
   }
 }

@@ -1,25 +1,21 @@
 <?php
 
-namespace Metrique\Pagoti\Queries;
+namespace Metrique\Pagoti\Resources;
 
 use Metrique\Pagoti\PaginatedResponse;
-use Metrique\Pagoti\PagotiTransportInterface;
+use Metrique\Pagoti\PagotiClient;
+use Metrique\Pagoti\Resources\Concerns\CanFetchFresh;
 
-class PagesQuery
+class PagesResource
 {
-    private bool $fresh = false;
+    use CanFetchFresh;
 
     public function __construct(
-        private readonly PagotiTransportInterface $client,
+        private readonly PagotiClient $client,
         private readonly string $projectId,
     ) {
     }
 
-    public function fresh(): static
-    {
-        $this->fresh = true;
-        return $this;
-    }
 
     public function flush(): void
     {

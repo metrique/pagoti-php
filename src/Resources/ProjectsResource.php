@@ -1,24 +1,20 @@
 <?php
 
-namespace Metrique\Pagoti\Queries;
+namespace Metrique\Pagoti\Resources;
 
 use Metrique\Pagoti\PaginatedResponse;
-use Metrique\Pagoti\PagotiTransportInterface;
+use Metrique\Pagoti\PagotiClient;
+use Metrique\Pagoti\Resources\Concerns\CanFetchFresh;
 
-class ProjectsQuery
+class ProjectsResource
 {
-    private bool $fresh = false;
+    use CanFetchFresh;
 
     public function __construct(
-        private readonly PagotiTransportInterface $client,
+        private readonly PagotiClient $client,
     ) {
     }
 
-    public function fresh(): static
-    {
-        $this->fresh = true;
-        return $this;
-    }
 
     public static function versionKey(): string
     {
@@ -43,10 +39,14 @@ class ProjectsQuery
 
     public function create(array $data): array
     {
-        return $this->client->request(
+        $result = $this->client->request(
             'POST',
             $this->client->apiUrl('projects'),
             body: $data,
         );
+
+        $this->flush();
+
+        return $result;
     }
 }

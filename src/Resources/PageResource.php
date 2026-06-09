@@ -2,12 +2,12 @@
 
 namespace Metrique\Pagoti\Resources;
 
-use Metrique\Pagoti\PagotiTransportInterface;
+use Metrique\Pagoti\PagotiClient;
 
 class PageResource
 {
     public function __construct(
-        private readonly PagotiTransportInterface $client,
+        private readonly PagotiClient $client,
         private readonly string $projectId,
         private readonly string $pageId,
     ) {

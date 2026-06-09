@@ -8,19 +8,21 @@ use Metrique\Pagoti\Exceptions\PagotiApiException;
 use Metrique\Pagoti\Exceptions\PagotiAuthException;
 use Metrique\Pagoti\Exceptions\PagotiException;
 use Metrique\Pagoti\Exceptions\PagotiNotFoundException;
-use Metrique\Pagoti\Queries\ProjectsQuery;
+use Metrique\Pagoti\Http\RequestBodySerializer;
 use Metrique\Pagoti\Resources\ProjectResource;
+use Metrique\Pagoti\Resources\ProjectsResource;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\SimpleCache\CacheInterface;
 
-class PagotiClient implements PagotiClientInterface, PagotiTransportInterface
+class PagotiClient implements PagotiClientInterface
 {
     private ClientInterface $httpClient;
     private RequestFactoryInterface $requestFactory;
     private StreamFactoryInterface $streamFactory;
+    private RequestBodySerializer $requestBodySerializer;
 
     public function __construct(
         private readonly string $apiKey,
@@ -35,11 +37,12 @@ class PagotiClient implements PagotiClientInterface, PagotiTransportInterface
         $this->httpClient = $httpClient ?? Psr18ClientDiscovery::find();
         $this->requestFactory = $requestFactory ?? Psr17FactoryDiscovery::findRequestFactory();
         $this->streamFactory = $streamFactory ?? Psr17FactoryDiscovery::findStreamFactory();
+        $this->requestBodySerializer = new RequestBodySerializer();
     }
 
-    public function projects(): ProjectsQuery
+    public function projects(): ProjectsResource
     {
-        return new ProjectsQuery($this);
+        return new ProjectsResource($this);
     }
 
     public function project(string $projectId): ProjectResource
@@ -81,9 +84,7 @@ class PagotiClient implements PagotiClientInterface, PagotiTransportInterface
             ->withHeader('Accept', 'application/json');
 
         if ($body) {
-            $request = $request
-                ->withHeader('Content-Type', 'application/json')
-                ->withBody($this->streamFactory->createStream(json_encode($body, JSON_THROW_ON_ERROR)));
+            $request = $this->requestBodySerializer->serialize($request, $body, $this->streamFactory);
         }
 
         try {
@@ -124,4 +125,5 @@ class PagotiClient implements PagotiClientInterface, PagotiTransportInterface
         $apiUrl = "{$this->baseUrl}/{$this->version}";
         return $path ? "{$apiUrl}/{$path}" : $apiUrl;
     }
+
 }

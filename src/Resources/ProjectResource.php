@@ -2,32 +2,26 @@
 
 namespace Metrique\Pagoti\Resources;
 
-use Metrique\Pagoti\PagotiTransportInterface;
-use Metrique\Pagoti\Queries\MediaQuery;
-use Metrique\Pagoti\Queries\PagesQuery;
+use Metrique\Pagoti\PagotiClient;
+use Metrique\Pagoti\Resources\Concerns\CanFetchFresh;
 
 class ProjectResource
 {
-    private bool $fresh = false;
+    use CanFetchFresh;
 
     public function __construct(
-        private readonly PagotiTransportInterface $client,
+        private readonly PagotiClient $client,
         private readonly string $projectId,
     ) {
     }
 
-    public function fresh(): static
-    {
-        $this->fresh = true;
-        return $this;
-    }
 
     public function flush(): void
     {
         $this->client->flushVersion(
             $this->versionKey(),
-            PagesQuery::versionKey($this->projectId),
-            MediaQuery::versionKey($this->projectId),
+            PagesResource::versionKey($this->projectId),
+            MediaResource::versionKey($this->projectId),
         );
     }
 
@@ -43,11 +37,16 @@ class ProjectResource
 
     public function update(array $data): array
     {
-        return $this->client->request(
+        $result = $this->client->request(
             'PUT',
             $this->client->apiUrl("projects/{$this->projectId}"),
             body: $data,
         );
+
+        $this->flush();
+        $this->client->flushVersion(ProjectsResource::versionKey());
+
+        return $result;
     }
 
     public function delete(): void
@@ -56,11 +55,14 @@ class ProjectResource
             'DELETE',
             $this->client->apiUrl("projects/{$this->projectId}"),
         );
+
+        $this->flush();
+        $this->client->flushVersion(ProjectsResource::versionKey());
     }
 
-    public function pages(): PagesQuery
+    public function pages(): PagesResource
     {
-        return new PagesQuery($this->client, $this->projectId);
+        return new PagesResource($this->client, $this->projectId);
     }
 
     public function page(string $pageId): PageResource
@@ -68,9 +70,9 @@ class ProjectResource
         return new PageResource($this->client, $this->projectId, $pageId);
     }
 
-    public function media(): MediaQuery
+    public function media(): MediaResource
     {
-        return new MediaQuery($this->client, $this->projectId);
+        return new MediaResource($this->client, $this->projectId);
     }
 
     private function versionKey(): string
